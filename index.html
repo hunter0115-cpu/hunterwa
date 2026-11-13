@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的專屬記帳本</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --income: #10b981;
+      --expense: #ef4444;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #1f2937;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .container { width: 100%; max-width: 480px; }
+    h1 { text-align: center; font-size: 1.5rem; margin-bottom: 16px; color: #111827; }
+    .summary-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .balance-title { font-size: 0.9rem; color: #6b7280; }
+    .balance-amount { font-size: 2.2rem; font-weight: bold; margin: 4px 0 16px 0; color: var(--primary); }
+    .summary-row {
+      display: flex;
+      justify-content: space-around;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
+    }
+    .summary-item div:first-child { font-size: 0.85rem; color: #6b7280; }
+    .income-text { color: var(--income); font-weight: bold; font-size: 1.1rem; }
+    .expense-text { color: var(--expense); font-weight: bold; font-size: 1.1rem; }
+
+    .form-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+    .type-toggle { display: flex; gap: 10px; margin-bottom: 16px; }
+    .type-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .type-btn.active.expense { border-color: var(--expense); background-color: #fef2f2; color: var(--expense); }
+    .type-btn.active.income { border-color: var(--income); background-color: #ecfdf5; color: var(--income); }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.9rem; margin-bottom: 6px; font-weight: 600; color: #374151; }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .submit-btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+    .list-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .list-title { font-size: 1rem; font-weight: bold; margin-bottom: 12px; color: #374151; }
+    .record-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .record-item:last-child { border-bottom: none; }
+    .record-info { display: flex; flex-direction: column; }
+    .record-cat { font-weight: bold; font-size: 0.95rem; }
+    .record-meta { font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+    .record-amount { font-weight: bold; font-size: 1.05rem; }
+    .loading { text-align: center; color: #6b7280; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💰 我的專屬記帳本</h1>
+
+    <div class="summary-card">
+      <div class="balance-title">目前剩餘零用錢</div>
+      <div class="balance-amount" id="balance">$0</div>
+      <div class="summary-row">
+        <div class="summary-item">
+          <div>總收入</div>
+          <div class="income-text" id="totalIncome">$0</div>
+        </div>
+        <div class="summary-item">
+          <div>總支出</div>
+          <div class="expense-text" id="totalExpense">$0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="type-toggle">
+        <button type="button" class="type-btn active expense" id="btnExpense" onclick="setType('支出')">支出</button>
+        <button type="button" class="type-btn income" id="btnIncome" onclick="setType('收入')">收入</button>
+      </div>
+
+      <form id="recordForm" onsubmit="submitForm(event)">
+        <div class="form-group">
+          <label for="date">日期</label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="form-group">
+          <label for="category">分類項目</label>
+          <select id="category" required></select>
+        </div>
+
+        <div class="form-group">
+          <label for="amount">金額 ($)</label>
+          <input type="number" id="amount" min="1" placeholder="請輸入金額" required>
+        </div>
+
+        <div class="form-group">
+          <label for="note">備註（選填）</label>
+          <input type="text" id="note" placeholder="例如：買自動鉛筆、數學考100分">
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">儲存紀錄</button>
+      </form>
+    </div>
+
+    <div class="list-card">
+      <div class="list-title">最近 10 筆紀錄</div>
+      <div id="recordList" class="loading">資料同步中...</div>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ 請把下方雙引號內的網址，替換成你部署好的 Google Apps Script 網址
+    const API_URL = "請在這裡貼上你的_GOOGLE_APPS_SCRIPT_網址";
+
+    const categories = {
+      '支出': ['買玩具', '文具', '餅乾', '晚餐'],
+      '收入': ['零用錢', '考試考好賺到的錢', '賣東西賺到的錢']
+    };
+
+    let currentType = '支出';
+
+    window.onload = function() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('date').value = today;
+      updateCategoryOptions();
+      loadData();
+    };
+
+    function setType(type) {
+      currentType = type;
+      document.getElementById('btnExpense').classList.toggle('active', type === '支出');
+      document.getElementById('btnIncome').classList.toggle('active', type === '收入');
+      updateCategoryOptions();
+    }
+
+    function updateCategoryOptions() {
+      const select = document.getElementById('category');
+      select.innerHTML = '';
+      categories[currentType].forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+    }
+
+    // 從 Google 試算表讀取最新資料
+    async function loadData() {
+      if (API_URL.includes("請在這裡貼上")) {
+        document.getElementById('recordList').innerHTML = '<div class="loading" style="color:red;">請先在程式碼中填入 Google Apps Script 網址喔！</div>';
+        return;
+      }
+
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        renderDashboard(data);
+      } catch (error) {
+        document.getElementById('recordList').innerHTML = '<div class="loading">讀取失敗，請確認網路或網址設定</div>';
+        console.error(error);
+      }
+    }
+
+    function renderDashboard(data) {
+      document.getElementById('balance').textContent = '$' + data.balance.toLocaleString();
+      document.getElementById('totalIncome').textContent = '$' + data.totalIncome.toLocaleString();
+      document.getElementById('totalExpense').textContent = '$' + data.totalExpense.toLocaleString();
+
+      const listEl = document.getElementById('recordList');
+      if (data.records.length === 0) {
+        listEl.innerHTML = '<div class="loading">目前還沒有記帳紀錄喔！</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      data.records.forEach(item => {
+        const isIncome = item.type === '收入';
+        const sign = isIncome ? '+' : '-';
+        const colorClass = isIncome ? 'income-text' : 'expense-text';
+        const noteText = item.note ? ` · ${item.note}` : '';
+
+        const div = document.createElement('div');
+        div.className = 'record-item';
+        div.innerHTML = `
+          <div class="record-info">
+            <span class="record-cat">${item.category}</span>
+            <span class="record-meta">${item.date}${noteText}</span>
+          </div>
+          <div class="record-amount ${colorClass}">${sign}$${item.amount.toLocaleString()}</div>
+        `;
+        listEl.appendChild(div);
+      });
+    }
+
+    // 傳送資料到 Google 試算表
+    async function submitForm(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '儲存並同步中...';
+
+      const record = {
+        date: document.getElementById('date').value,
+        type: currentType,
+        category: document.getElementById('category').value,
+        amount: document.getElementById('amount').value,
+        note: document.getElementById('note').value
+      };
+
+      try {
+        // 使用 text/plain 避開瀏覽器跨網域 (CORS) 的預檢阻擋
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(record)
+        });
+
+        // 寫入成功後，重新抓取最新統計數字
+        await loadData();
+        document.getElementById('amount').value = '';
+        document.getElementById('note').value = '';
+      } catch (error) {
+        alert('儲存時發生錯誤，請稍後再試！');
+        console.error(error);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '儲存紀錄';
+      }
+    }
+  </script>
+</body>
+</html>
