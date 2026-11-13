@@ -204,7 +204,7 @@
 
     // 從 Google 試算表讀取最新資料
     async function loadData() {
-      if (API_URL.includes("請在這裡貼上")) {
+      if (API_URL.includes("https://script.google.com/macros/s/AKfycbwlxjrPIak1o5jPsv6gtOTY1d-Y00WadkBPAVkztj8ZTE9YvUFjdhCCFahKx9-NJc43oQ/exec")) {
         document.getElementById('recordList').innerHTML = '<div class="loading" style="color:red;">請先在程式碼中填入 Google Apps Script 網址喔！</div>';
         return;
       }
